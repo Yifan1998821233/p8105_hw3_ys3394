@@ -7,6 +7,9 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(rnoaa)
+library(ggridges)
+library(patchwork) 
 library(p8105.datasets)
 
 knitr::opts_chunk$set(
@@ -28,7 +31,19 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Problem 1
 
-Do some exploration of the dataset "instacart".
+#### Do some exploration of the dataset "instacart".
+
+```{r}
+data("instacart")
+```
+
+**A Short description**
+
+* This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns. 
+
+* This instacart online grocery shopping dataset has information about orders of users on the instacart, with each row represents the data of one product of an order. 
+
+* Key variables of user and order are -- user ID, order day and order hour. They are other variables about items and products, including aisle, department and their ID numbers. It's worth noticing that there are many aisles in a department, and products with different aisles and departments ID are distinct.
 
 
 
