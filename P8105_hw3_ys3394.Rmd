@@ -45,5 +45,63 @@ data("instacart")
 
 * Key variables of user and order are -- user ID, order day and order hour. They are other variables about items and products, including aisle, department and their ID numbers. It's worth noticing that there are many aisles in a department, and products with different aisles and departments ID are distinct.
 
+Number of ailes, and show aisles that most items ordered from.
 
+```{r}
+instacart %>% 
+  count(aisle) %>% 
+  arrange(desc(n))
+```
+
+Make a plot shows number of items and those greater than 10000 items ordered.
+
+```{r}
+instacart %>% 
+  count(aisle) %>%
+  filter(n > 10000) %>% 
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, n)
+  ) %>%  # convert aisle to a factor variable, then we can use the function fct_reorder to adjust order.
+  ggplot(aes(x = aisle, y = n)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1)) +
+  labs(
+    title = "Aisles with more than 10000 items ordered",
+    x = "Aisles' names",
+    y = "Number of orders",
+    caption = "Data from instacart online grocery shopping dataset 2017"
+  )
+```
+
+Make a table showing the three most popular items in each of the aisles.
+
+```{r}
+instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  mutate(
+    rank = min_rank(desc(n))
+  ) %>% 
+  filter(rank < 4) %>% 
+  arrange(aisle, rank) %>% 
+  knitr::kable()
+```
+
+Make a table of the mean hour of the day of two items in a week.
+
+```{r}
+instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(
+    names_from = order_dow,
+    values_from = mean_hour,
+    names_prefix = "mean_order_hour_of_day_"
+  ) %>% 
+  t() %>% 
+  knitr::kable()
+```
 
