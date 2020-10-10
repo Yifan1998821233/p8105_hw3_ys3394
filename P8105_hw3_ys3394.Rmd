@@ -6,12 +6,14 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
+# Load necessary packages
 library(tidyverse)
-library(rnoaa)
-library(ggridges)
+library(readxl)
 library(patchwork) 
+library(hexbin)
 library(p8105.datasets)
 
+# set options
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
@@ -33,7 +35,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 #### Do some exploration of the dataset "instacart".
 
-```{r}
+```{r instacart}
 data("instacart")
 ```
 
@@ -46,17 +48,22 @@ data("instacart")
 * Key variables of user and order are -- user ID, order day and order hour. They are other variables about items and products, including aisle, department and their ID numbers. It's worth noticing that there are many aisles in a department, and products with different aisles and departments ID are distinct.
 
 
-Number of ailes, and show aisles that most items ordered from.
+**(1) Number of ailes, and show aisles that most items ordered from**
 
-```{r}
+```{r aisles, collapse=TRUE}
+# count aisles in instacart, and rank them
 instacart %>% 
   count(aisle) %>% 
   arrange(desc(n))
 ```
 
-Make a plot shows number of items and those greater than 10000 items ordered.
+* They are `r instacart %>% distinct(aisle) %>% count()` ailes in this dataset, and the item most ordered from is the `fresh vegetables`.
 
-```{r}
+
+**(2) Make a plot shows number of items and those greater than 10000 items ordered**
+
+```{r items}
+# tidy data, and plot
 instacart %>% 
   count(aisle) %>%
   filter(n > 10000) %>% 
@@ -75,9 +82,13 @@ instacart %>%
   )
 ```
 
-Make a table showing the three most popular items in each of the aisles.
+* The plot above shows number of items greater than 10000, with item `fresh vegetables` and `fresh fruits` being the top two.
 
-```{r}
+
+**(3) Make a table showing the three most popular items in each of the aisles**
+
+```{r three_items}
+# list three items that are most popular among aisles
 instacart %>% 
   filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
   group_by(aisle) %>% 
@@ -87,17 +98,21 @@ instacart %>%
   ) %>% 
   filter(rank < 4) %>% 
   arrange(aisle, rank) %>% 
-  knitr::kable(digits = 2)
+  knitr::kable(digits = 2) # make a table
 ```
 
-Make a table of the mean hour of the day of two items in a week.
+* The table ablve shows top three popular items in aisles `baking ingredients`, `dog food care` and `packaged vegetables fruits`, respectively.
 
-```{r}
+
+**(4) Make a table of the mean hour of the day of two items in a week**
+
+```{r mean_hour, warning=FALSE, message=FALSE}
+# a plot about mean hour of the day
 instacart %>% 
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
-  group_by(product_name, order_dow) %>% 
+  group_by(product_name, order_dow, .groups = 'drop') %>% # drop group to eliminate warning message
   summarize(mean_hour = mean(order_hour_of_day)) %>% 
-  pivot_wider(
+  pivot_wider( # increase readability
     names_from = order_dow,
     values_from = mean_hour,
     names_prefix = "mean_order_hour_of_day_"
@@ -106,14 +121,17 @@ instacart %>%
   knitr::kable(digits = 2)
 ```
 
-# Comment on each results
+* The table above showsthe mean hour of the day at which `Pink Lady Apples` and `Coffee Ice Cream` are ordered on each day of the week. Mean hour information regarding these two items are quite similar.
 
 
 ## Problem 2
 
-```{r}
+**(1) Load, tidy, and otherwise wrangle the data**
+
+```{r accelerometers, warning=FALSE, collapse=TRUE}
+# Load data accel_data.csv
 chf_df =
-  read_csv("./data/accel_data.csv") %>% 
+  read_csv("./data/accel_data.csv", col_types = cols()) %>% # col_types also remove warnings
   janitor::clean_names() %>% 
   pivot_longer(
     activity_1:activity_1440,
@@ -126,37 +144,44 @@ chf_df =
     week = as.factor(week),
     day_id = as.factor(day_id),
     day = as.factor(day),
-    weekday_weekend = case_when(
+    weekday_weekend = case_when( 
       day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ "weekday",
       day %in% c("Saturday", "Sunday") ~ "weekend"),
     weekday_weekend = as.factor(weekday_weekend),
     day = forcats::fct_relevel(day, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-    )
+    ) # add a weekday_weekend variable
+
+head(chf_df)
 ```
 
-#Describe results
+In this dataset, there are `r nrow(chf_df)` rows and `r ncol(chf_df)` columns. Variables in it are `r names(chf_df)`. Among which, variable `minute_day` and `activity_counts` corresponding to each minute over a day and activity counts, respectively. Also, a variable `weekday_weekend` is added to distinguish weekday from weekend.
 
-**Traditional analyses of accelerometer data focus on the total activity over the day**
 
-```{r}
+**(2) Traditional analyses of accelerometer data focus on the total activity over the day**
+
+```{r activity_day, warning=FALSE}
+# total activity over the day
 chf_df_2 =
   chf_df %>% 
-  group_by(week, day) %>% 
-  summarize(sum_counts = sum(activity_counts)) %>% 
+  group_by(week, day, .groups = 'drop') %>% 
+  summarize(sum_counts = sum(activity_counts)) %>% # count total activity counts
   pivot_wider(
     names_from = day,
     values_from = sum_counts
   ) %>% 
-  mutate(sum_week = sum(Monday:Sunday)) %>% 
   knitr::kable(digits = 2)
+
+chf_df_2
 ```
 
-# show trends
+* This table shows total activity of the male over days in five weeks. There is a trend that activity counts in week 2 are larger than that of other weeks, while it has the least counts overall for week 4. On Saturday of week 3 and week 4, the counts are low.
 
-**Accelerometer data allows the inspection activity over the course of the day**
 
-```{r warning=FALSE}
-  chf_df %>% 
+**(3) Accelerometer data allows the inspection activity over the course of the day**
+
+```{r plot, warning=FALSE, message=FALSE, collapse=TRUE}
+# activity over the course of the day
+chf_df %>% 
   ggplot(aes(x = minute_day, y = activity_counts, color = day)) +
   geom_smooth(se = FALSE) +
   labs( 
@@ -165,32 +190,200 @@ chf_df_2 =
     y = "Activity counts",
     caption = "Data from instacart online grocery shopping dataset 2017"
   ) +
-   viridis::scale_color_viridis(
+   viridis::scale_color_viridis( # a color package
     name = "day",
     discrete =  TRUE
    ) +
-  scale_y_continuous(trans = "sqrt") +
+  scale_y_continuous(trans = "sqrt") + # transform the plot, more readable
   scale_x_continuous(breaks = c(1, 240, 480, 720, 960, 1200, 1440), 
-                     labels = c("0h","4h", "8h", "12h", "16h", "20h", "24h"))+
-  theme_minimal()
+                     labels = c("0h","4h", "8h", "12h", "16h", "20h", "24h")) +
+  theme_minimal() 
 ```
 
-#Describe in words any patterns or conclusions you can make based on this graph
+* This graph shows the activity counts from Monday to Sunday. It shows that there are apparently two peaks, one for Friday at 22h and one for Sunday at 11h, have high activity counts. Also, there is the trend that high activity counts are gained from middle of the day, or at night around 21h. Besides, the 4th hour of a day usually has the lowest value for activity counts.
 
 
 ## Problem 3
 
 #### Do some exploration of the dataset "NOAA".
 
-```{r}
+```{r load_nynoaa}
+library(p8105.datasets)
 data("ny_noaa")
 ```
 
-#To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each)
+**Short description**
 
-**Data cleaning**
+* The dataset "NY NOAA" is the weather data provided by the NOAA, including summary statistics from weather stations. It is a dataframe contains `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` columns. 
 
-```{r}
+* Key variables of it are **_`r names(ny_noaa)`_**. Among them, there are variable `id` showing information of weather stations, and summary weather data such as `prcp`, `tmax` and `tmin` showing precipitation and temperature conditions. 
 
+* For variables `prcp`, `snow` and `snwd`, the proportions of missing value are relatively low. In variables `tmax` and `tmin`, missing values consist of nearly half of their total values, which are extreamly high. More detailed information about variable missing values can be seen in the table below.
+
+```{r missing_value, echo=FALSE, message=FALSE}
+# count missing values for each columns
+colMeans(is.na(ny_noaa)) %>% 
+  knitr::kable()
 ```
+
+
+**(1) Data cleaning**
+
+```{r ny_noaa_df}
+# tidy ny_noaa dataset
+ny_noaa_df =
+  ny_noaa %>% 
+  mutate_at(vars(date), as.factor) %>% # mutate data prior to separate, data in the wrong class
+  separate(date, into = c("year", "month", "day"), "-") %>% 
+  mutate_at(vars(prcp, tmax, tmin, snow), as.numeric) %>% 
+  mutate(
+    prcp = prcp/10, # these three variables are in tenth
+    tmin = tmin/10,
+    tmax = tmax/10,
+    snow = case_when( # remove snow values < 0 
+    snow < 0 ~ 0,
+    snow >= 0 ~ snow)
+  )
+```
+
+```{r snow, collapse=TRUE}
+# find the most common snowfall value
+ny_noaa_df %>% 
+  count(snow, na.rm = TRUE) %>% 
+  mutate(snow_rank = min_rank(desc(n))) %>% 
+  filter(snow_rank == "1")
+```
+
+* The most common observed value for snowfall is 0. Since the data is tidied, unreasonable snowfall values less than 0 has been screened, so the result is reliable. It makes sense that the most common value of snowfall is O that there is no snow for most time of the year.
+
+
+**(2) Make a two-panel plot showing the average max temperature in January and in July in each station across years**
+
+```{r two_panel, warning=FALSE, message=FALSE, collapse=TRUE}
+# average max temperature in January
+month_01 =
+ny_noaa_df %>% 
+  filter(month == "01") %>% 
+  group_by(id, year, month) %>% 
+  summarize(tmax_mean = mean(tmax, na.rm = TRUE), .groups = 'drop') %>% 
+  drop_na(tmax_mean) %>% 
+  ggplot(aes(x = year, y = tmax_mean, color = id)) +
+  geom_point(alpha = 0.5, size = 0.1) +
+  geom_path(aes(group = id), alpha = 0.3, size = 0.2) + # connect points with lines
+  theme_minimal() +
+  theme(
+    legend.position = 'none',
+    axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1),
+    ) +
+  labs(
+    x = "Year",
+    y = "Temperature(C)",
+    title = "Max temperature in January per year",
+    caption = "Data from NY NOAA"
+    )
+
+# average max temperature in July
+month_07 =
+ny_noaa_df %>% 
+  filter(month == "07") %>% 
+  group_by(id, year, month, .groups = 'drop') %>% 
+  summarize(tmax_mean = mean(tmax, na.rm = TRUE)) %>% 
+  drop_na(tmax_mean) %>% 
+  ggplot(aes(x = year, y = tmax_mean, color = id)) +
+  geom_point(alpha = 0.5, size = 0.1) +
+  geom_path(aes(group = id), alpha = 0.3, size = 0.2) +
+  theme_minimal() +
+  theme(
+    legend.position = 'none',
+    axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1),
+    ) +
+  labs(
+    x = "Year",
+    y = "Temperature(C)",
+    title = "Max temperature in July per year",
+    caption = "Data from NY NOAA"
+    )  
+
+# combine two panels
+month_01 / month_07
+```
+
+__Outliers of temperature in January and July__
+```{r outliers, collapse=TRUE, warning=FALSE, message=FALSE}
+# Outliers of temperature in January accrose the years
+outlier_01 =
+  ny_noaa_df %>% 
+  filter(month == "01") %>% 
+  group_by(id, year, month, .groups = 'drop') %>% 
+  summarize(tmax_mean = mean(tmax, na.rm = TRUE)) %>% 
+  drop_na(tmax_mean) %>% 
+  filter(tmax_mean > 10 | tmax_mean < -10) %>% 
+  count()
+
+outlier_01
+  
+# Outliers of temperature in July accrose the years
+outlier_07 =
+  ny_noaa_df %>% 
+  filter(month == "07") %>% 
+  group_by(id, year, month, .groups = 'drop') %>% 
+  summarize(tmax_mean = mean(tmax, na.rm = TRUE)) %>% 
+  drop_na(tmax_mean) %>% 
+  filter(tmax_mean > 33 | tmax_mean < 20) %>% 
+  count()
+
+outlier_07
+```
+
+* For maximum temperature in January over years, there are two years has apparently low temperature, which are year 1994 and year 2004. Although temperature in January fluctuated over years, temperature observed in different weather stations are paralled over years.
+
+* For maximum temperature in July over years, values are less regular than that of January, while it doesn't fluctuate more than that of January. The overall maximum temperature of July is higher than in January. Also, some outliers are recorded in year 1988, year 2004, and year 2007.
+
+
+**(3) Make a two-panel plot showing tmin vs tmax, and snowfall distribution**
+
+```{r temp_snow, message=FALSE, warning=FALSE}
+# plot for tmax_vs_tmin over years
+tmax_vs_tmin =
+ny_noaa_df %>% 
+  drop_na(tmax, tmin) %>% 
+  pivot_longer(
+    tmax:tmin,
+    names_to = "tmax_tmin", # combine tmax and tmin to one variable
+    values_to = "temperature"
+  ) %>% 
+  ggplot(aes(x = year, y = temperature, color = tmax_tmin)) +
+  geom_hex(alpha = .2) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1)) +
+  labs(
+    x = "Year",
+    y = "Temperature(C)",
+    title = "Maximun and minimum temperature across years",
+    caption = "Data from NY NOAA"
+    )
+
+# plot for snowfall distribution over years
+snowfall =
+ny_noaa_df %>% 
+  drop_na(snow) %>% 
+  filter(snow > 0 & snow < 100) %>% 
+  ggplot(aes(x = year, y = snow)) +
+  geom_violin(alpha = .2, color = "blue", fill = "blue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1)) +
+  labs(
+    x = "Year",
+    y = "Snowfall(mm)",
+    title = "Snallfall distribution over years",
+    caption = "Data from NY NOAA"
+    )  
+
+# combine two panels
+(tmax_vs_tmin / snowfall) + plot_layout(widths = 8, heights = 16)
+```
+
+* For the plot showing maximum and minimum temperature over year, the changing of maximum temperature are paralleled with the minimum temperature over years. And it's for sure that the maximum temperature are higher than the minimum temperature of a year. Also, the change of maximum temperature value seems to lag the change of minumum temperature value.
+
+* For the plot showing snowfall distribution, the common snowfall value over years are 50 and 75 (mm), and some of those values fall between 0 to 25 (mm). And there is a trend that the amount of snowfall is decreasing over years.
 
