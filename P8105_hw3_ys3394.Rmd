@@ -9,26 +9,25 @@ output: github_document
 # Load necessary packages
 library(tidyverse)
 library(readxl)
-library(patchwork) 
+library(patchwork)
 library(hexbin)
 library(p8105.datasets)
 
 # set options
 knitr::opts_chunk$set(
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
-)
-
+  fig.height = 6,
+  fig.width = 8,
+  message = FALSE,
+  warning = FALSE
+  )
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
-
 options(
   ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
+  ggplot2.continuous.fill = "viridis",
+  digits = 3
 )
-
 scale_colour_discrete = scale_colour_viridis_d
-scale_fill_discrete = scale_fill_viridis_d
+scale_fill_discrete = scale_fill_viridis_d 
 ```
 
 ## Problem 1
@@ -369,7 +368,7 @@ ny_noaa_df %>%
   drop_na(snow) %>% 
   filter(snow > 0 & snow < 100) %>% 
   ggplot(aes(x = year, y = snow)) +
-  geom_violin(alpha = .2, color = "blue", fill = "blue") +
+  geom_violin(alpha = .3, color = "blue", fill = "blue") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust = 1)) +
   labs(
