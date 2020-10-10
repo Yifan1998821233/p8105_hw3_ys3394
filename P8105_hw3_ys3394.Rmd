@@ -45,6 +45,7 @@ data("instacart")
 
 * Key variables of user and order are -- user ID, order day and order hour. They are other variables about items and products, including aisle, department and their ID numbers. It's worth noticing that there are many aisles in a department, and products with different aisles and departments ID are distinct.
 
+
 Number of ailes, and show aisles that most items ordered from.
 
 ```{r}
@@ -86,7 +87,7 @@ instacart %>%
   ) %>% 
   filter(rank < 4) %>% 
   arrange(aisle, rank) %>% 
-  knitr::kable()
+  knitr::kable(digits = 2)
 ```
 
 Make a table of the mean hour of the day of two items in a week.
@@ -102,7 +103,7 @@ instacart %>%
     names_prefix = "mean_order_hour_of_day_"
   ) %>% 
   t() %>% 
-  knitr::kable()
+  knitr::kable(digits = 2)
 ```
 
 # Comment on each results
@@ -122,16 +123,74 @@ chf_df =
     ) %>% 
   mutate(
     minute_day = as.integer(minute_day),
+    week = as.factor(week),
+    day_id = as.factor(day_id),
+    day = as.factor(day),
     weekday_weekend = case_when(
       day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ "weekday",
-      day %in% c("Saturday", "Sunday") ~ "weekend"
-    )) %>% 
-  
+      day %in% c("Saturday", "Sunday") ~ "weekend"),
+    weekday_weekend = as.factor(weekday_weekend),
+    day = forcats::fct_relevel(day, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    )
 ```
 
+#Describe results
 
-head(chf_df)
-tail(chf_df)
+**Traditional analyses of accelerometer data focus on the total activity over the day**
+
+```{r}
+chf_df_2 =
+  chf_df %>% 
+  group_by(week, day) %>% 
+  summarize(sum_counts = sum(activity_counts)) %>% 
+  pivot_wider(
+    names_from = day,
+    values_from = sum_counts
+  ) %>% 
+  mutate(sum_week = sum(Monday:Sunday)) %>% 
+  knitr::kable(digits = 2)
+```
+
+# show trends
+
+**Accelerometer data allows the inspection activity over the course of the day**
+
+```{r warning=FALSE}
+  chf_df %>% 
+  ggplot(aes(x = minute_day, y = activity_counts, color = day)) +
+  geom_smooth(se = FALSE) +
+  labs( 
+    title = "Inspection activity over day",
+    x = "Hours",
+    y = "Activity counts",
+    caption = "Data from instacart online grocery shopping dataset 2017"
+  ) +
+   viridis::scale_color_viridis(
+    name = "day",
+    discrete =  TRUE
+   ) +
+  scale_y_continuous(trans = "sqrt") +
+  scale_x_continuous(breaks = c(1, 240, 480, 720, 960, 1200, 1440), 
+                     labels = c("0h","4h", "8h", "12h", "16h", "20h", "24h"))+
+  theme_minimal()
+```
+
+#Describe in words any patterns or conclusions you can make based on this graph
 
 
+## Problem 3
+
+#### Do some exploration of the dataset "NOAA".
+
+```{r}
+data("ny_noaa")
+```
+
+#To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each)
+
+**Data cleaning**
+
+```{r}
+
+```
 
